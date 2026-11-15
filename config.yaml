@@ -1,0 +1,58 @@
+# ===== EDIT THIS FILE TO MATCH YOUR ACCOUNT =====
+
+brand_name: "The Nashik Guide"
+instagram_handle: "@thenashikguide"   # <-- change if you pick another name
+
+niche: "Nashik & Trimbakeshwar Simhastha Kumbh Mela 2027 - history, rituals, temples, travel guide and pilgrim help"
+audience: "devotees, pilgrims, families and travellers across India (and NRIs) planning to visit Nashik and the Kumbh Mela 2027, plus people who love Indian spirituality and heritage"
+tone: "devotional but simple, warm, respectful, helpful like a local guide; short sentences"
+language: "English with common Hindi/Marathi words (e.g. snan, darshan, aarti, ghat)"
+
+# Faceless account: every picture is original AI artwork, no faces on camera.
+# What gets posted each day, in order (09:00, 13:00, 19:00 IST). Options: image, reel
+daily_plan: ["image", "reel", "image"]
+
+# The AI rotates through these so the page stays varied
+content_pillars:
+  - "Countdown & key Amrit Snan dates"
+  - "Kumbh history & mythology (Samudra Manthan, Simhastha, Jupiter in Leo)"
+  - "Rituals explained (Amrit Snan, akhadas, Naga sadhus, Goda Aarti, Dhwajarohan)"
+  - "Trimbakeshwar Jyotirlinga & Brahmagiri"
+  - "Ramkund, Panchavati & Ramayana places"
+  - "Other temples & places near Nashik (Kalaram, Kapaleshwar, Saptashrungi, Anjaneri, Muktidham, Pandavleni)"
+  - "Pilgrim guide: how to reach, where to stay, what to pack, best days for families"
+  - "Safety & help: crowd tips, elders & kids, lost-and-found, monsoon, health"
+  - "Myth vs fact about Kumbh"
+  - "Did you know? quick facts about Nashik"
+
+facts_file: "facts.md"           # verified facts - the AI may only use dates from here
+countdown_to: "2027-08-02"       # first Amrit Snan
+countdown_label: "1st Amrit Snan"
+
+hashtags_per_post: 15
+
+# ---- Original artwork (AI images) ----
+# Needs OPENAI_API_KEY as a GitHub secret. Without it the bot draws simple
+# built-in illustrations instead, so it never stops posting.
+image:
+  provider: "openai"
+  model: "gpt-image-1"
+  size: "1024x1536"
+  quality: "medium"              # low / medium / high (higher = costlier)
+  art_style: "warm painterly digital illustration, golden-hour light, saffron, maroon and river-blue palette, devotional and serene, rich detail, no text"
+
+# Reels
+reel:
+  scenes: 4                      # pictures per Reel
+  seconds_per_scene: 3.5
+  music: "drone"                 # soft original tanpura-like drone; "none" for silent
+
+# Image colours for text overlays and fallback art (hex)
+colors:
+  background_top: "#7A1F1F"
+  background_bottom: "#E2711D"
+  text: "#FFFFFF"
+  accent: "#FFD166"
+
+model: "claude-sonnet-5-5"       # AI that writes the content
+keep_media_days: 7               # full-size images/videos kept online this many days

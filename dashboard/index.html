@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Autopilot Control Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yatra+One&family=Mukta:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Control room for the faceless Instagram bot. Summary tiles first, then chart + controls,
+   today's queue, best posts, run history. Brand world shared with the public guide. */
+:root{
+  --bg:#F7F1E8; --panel:#FFFFFF; --ink:#2A1A14; --muted:#6F5A4E; --line:#E7D9C6;
+  --maroon:#6E1B1B; --saffron:#E2711D; --gold:#F4B942; --river:#1F5F6B;
+  --good:#2E7D4F; --warn:#B7791F; --bad:#B42318;
+  --display:"Yatra One","Mukta",Georgia,serif; --body:"Mukta","Segoe UI",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1B1412; --panel:#251C19; --ink:#F4E9DD; --muted:#BFA897; --line:#3B2D27;
+  --maroon:#F0A07A; --saffron:#F08A3A; --gold:#F4B942; --river:#6FB7C2;
+  --good:#5FC48A; --warn:#E0A84A; --bad:#F07A6E; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#1B1412; --panel:#251C19; --ink:#F4E9DD; --muted:#BFA897; --line:#3B2D27;
+  --maroon:#F0A07A; --saffron:#F08A3A; --gold:#F4B942; --river:#6FB7C2;
+  --good:#5FC48A; --warn:#E0A84A; --bad:#F07A6E; color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+button,input{font-family:var(--body);font-size:1rem}
+button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+a{color:var(--river)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 18px}
+h1,h2{font-family:var(--display);font-weight:400;color:var(--maroon);margin:0;line-height:1.2;text-wrap:balance}
+h1{font-size:1.5rem} h2{font-size:1.2rem}
+
+header{background:var(--panel);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;padding:14px 18px}
+header .sub{color:var(--muted);font-size:.9rem}
+.status{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:.85rem;padding:3px 10px;border-radius:999px;border:1px solid var(--line)}
+.status::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.status.on::before{background:var(--good)} .status.off::before{background:var(--bad)}
+.spacer{flex:1}
+.banner{background:#FFF4D6;color:#5A4210;border:1px solid #F1D48A;padding:10px 14px;border-radius:8px;margin:16px 0 0;font-size:.93rem}
+:root[data-theme="dark"] .banner{background:#3A2E14;color:#F6DFA3;border-color:#5C4A1E}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .banner{background:#3A2E14;color:#F6DFA3;border-color:#5C4A1E}}
+
+main.wrap{padding-top:18px;padding-bottom:48px;display:grid;gap:18px}
+.btn{white-space:nowrap} .btn small{white-space:normal;text-align:right}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.panel h2{margin-bottom:10px}
+.tiles{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.tile .k{color:var(--muted);font-size:.85rem}
+.tile .v{font-size:1.9rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15}
+.tile .d{font-size:.85rem;font-variant-numeric:tabular-nums}
+.up{color:var(--good)} .down{color:var(--bad)}
+
+.split{display:grid;gap:18px;grid-template-columns:minmax(0,2fr) minmax(280px,1fr)}
+@media (max-width:860px){.split{grid-template-columns:1fr}}
+#chart{width:100%;height:auto;display:block}
+
+.controls{display:grid;gap:10px}
+.btn{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;font-weight:700}
+.btn small{font-weight:400;color:var(--muted)}
+.btn.primary{background:var(--saffron);border-color:var(--saffron);color:#fff}
+.btn.primary small{color:#FFE9D6}
+.btn.danger{color:var(--bad)}
+.btn.confirm{outline:2px solid var(--bad)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.msg{font-size:.9rem;color:var(--muted);min-height:1.4em}
+.msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+
+.queue{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.q{border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;background:var(--panel)}
+.q .img{aspect-ratio:4/5;background:linear-gradient(160deg,#6E1B1B,#E2711D);position:relative;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
+.q .img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.q .img .badge{position:absolute;left:10px;top:10px;background:rgba(0,0,0,.55);color:#fff;font-size:.78rem;padding:2px 9px;border-radius:999px;z-index:1}
+.q .body{padding:12px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
+.q .meta{display:flex;justify-content:space-between;align-items:center;font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.q h3{margin:0;font-size:1rem;line-height:1.35}
+.q .err{color:var(--bad);font-size:.82rem;overflow-wrap:anywhere}
+.q .acts{display:flex;gap:8px;margin-top:auto;padding-top:6px}
+.q .acts button,.q .acts a{flex:1;text-align:center;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;font-size:.88rem;text-decoration:none}
+.pill{font-size:.75rem;font-weight:700;padding:2px 9px;border-radius:999px;text-transform:capitalize}
+.pill.scheduled{background:#E4F0F1;color:#1F5F6B}
+.pill.published{background:#DDF1E4;color:#1E6B3F}
+.pill.skipped{background:#EEE6DD;color:#6F5A4E}
+.pill.error{background:#FBE1DE;color:#9A1C12}
+
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+td.h{white-space:normal;min-width:220px}
+th{color:var(--muted);font-weight:500;font-size:.82rem;cursor:pointer;user-select:none}
+th.n,td.n{text-align:right;font-variant-numeric:tabular-nums}
+th[aria-sort] {color:var(--ink);font-weight:700}
+.bar{display:inline-block;height:8px;border-radius:4px;background:var(--saffron);vertical-align:middle;margin-left:6px;opacity:.75}
+.kind{font-size:.75rem;font-weight:700;color:var(--river)}
+
+.runs{list-style:none;margin:0;padding:0}
+.runs li{display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:.92rem;flex-wrap:wrap}
+.runs .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:none}
+.runs .dot.success{background:var(--good)} .runs .dot.failure{background:var(--bad)} .runs .dot.in_progress,.runs .dot.queued{background:var(--warn)}
+.runs time{color:var(--muted);font-variant-numeric:tabular-nums;margin-left:auto}
+
+details.settings summary{cursor:pointer;font-weight:700;color:var(--maroon)}
+.field{display:grid;gap:4px;margin:10px 0}
+.field label{font-weight:700;font-size:.9rem}
+.field input{padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+.hint{color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1 id="brand">The Nashik Guide</h1>
+    <span class="status" id="bot-status">Checking…</span>
+    <span class="spacer"></span>
+    <span class="sub" id="updated">Loading…</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="banner" id="demo-banner" hidden>Showing <strong>sample data</strong>. Once this page is on your GitHub Pages site and the bot has run, your real numbers appear here.</div>
+</div>
+
+<main class="wrap">
+  <section class="tiles" aria-label="Summary">
+    <div class="tile"><div class="k">Followers</div><div class="v" id="t-followers">–</div><div class="d" id="t-followers-d"></div></div>
+    <div class="tile"><div class="k">New in last 7 days</div><div class="v" id="t-week">–</div><div class="d" id="t-week-d"></div></div>
+    <div class="tile"><div class="k">Avg reach, last 10 posts</div><div class="v" id="t-reach">–</div><div class="d" id="t-reach-d"></div></div>
+    <div class="tile"><div class="k">Posts published</div><div class="v" id="t-posts">–</div><div class="d" id="t-posts-d"></div></div>
+    <div class="tile"><div class="k">Days to Amrit Snan</div><div class="v" id="t-days">–</div><div class="d">2 Aug 2027</div></div>
+  </section>
+
+  <div class="split">
+    <section class="panel" aria-labelledby="h-growth">
+      <h2 id="h-growth">Follower growth</h2>
+      <svg id="chart" viewBox="0 0 720 260" role="img" aria-label="Followers over time"></svg>
+      <div class="hint" id="goal-line"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-controls">
+      <h2 id="h-controls">Controls</h2>
+      <div class="controls">
+        <button class="btn primary" id="b-post" type="button">Post next now <small>publishes the next scheduled post</small></button>
+        <button class="btn" id="b-regen" type="button">Remake today's posts <small>new text and art for unposted ones</small></button>
+        <button class="btn" id="b-monitor" type="button">Update stats now <small>followers, reach, saves</small></button>
+        <button class="btn danger" id="b-pause" type="button">Pause bot <small>stops all scheduled posting</small></button>
+        <div class="msg" id="msg" role="status" aria-live="polite"></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="h-queue">
+    <h2 id="h-queue">Today's posts</h2>
+    <div class="queue" id="queue"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-posts">
+    <h2 id="h-posts">How posts performed</h2>
+    <p class="hint" style="margin:0 0 8px">Score = likes + 3×comments + 4×saves + 5×shares. The bot writes more of what scores high. Click a column to sort.</p>
+    <div class="tablewrap"><table id="posts"><thead><tr>
+      <th data-k="published_at">Date</th><th data-k="kind">Type</th><th data-k="headline">Post</th>
+      <th class="n" data-k="reach">Reach</th><th class="n" data-k="likes">Likes</th><th class="n" data-k="saved">Saves</th>
+      <th class="n" data-k="shares">Shares</th><th class="n" data-k="score" aria-sort="descending">Score</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <div class="split">
+    <section class="panel" aria-labelledby="h-runs">
+      <h2 id="h-runs">Recent bot runs</h2>
+      <ul class="runs" id="runs"><li>Connect your repository in Settings to see runs.</li></ul>
+    </section>
+    <section class="panel">
+      <details class="settings" id="settings">
+        <summary>Settings</summary>
+        <div class="field"><label for="s-repo">GitHub repository (owner/name)</label><input id="s-repo" placeholder="yourname/insta-autopilot" autocomplete="off"></div>
+        <div class="field"><label for="s-token">GitHub access token (only needed for the buttons)</label><input id="s-token" type="password" placeholder="github_pat_…" autocomplete="off">
+          <span class="hint">Create a fine-grained token for this one repository with <strong>Actions: Read and write</strong> permission. It is saved only in this browser.</span></div>
+        <button class="btn" id="s-save" type="button">Save settings</button>
+      </details>
+    </section>
+  </div>
+</main>
+
+<script>
+(function(){
+"use strict";
+var $ = function(id){ return document.getElementById(id); };
+var WF = "autopilot.yml";
+var store = {
+  get: function(k){ try { return localStorage.getItem(k) || ""; } catch(e){ return ""; } },
+  set: function(k,v){ try { localStorage.setItem(k, v); } catch(e){} }
+};
+function guessRepo(){
+  var m = location.hostname.match(/^([^.]+)\.github\.io$/);
+  var seg = location.pathname.split("/").filter(Boolean);
+  if (m && seg.length) return m[1] + "/" + seg[0];
+  return "";
+}
+var repo = store.get("ap-repo") || guessRepo();
+var token = store.get("ap-token");
+$("s-repo").value = repo; $("s-token").value = token;
+if (!repo) $("settings").open = true;
+
+function fmt(n){ return (n == null || isNaN(n)) ? "–" : Number(n).toLocaleString("en-IN"); }
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
+function say(text, kind){ var m = $("msg"); m.textContent = text; m.className = "msg " + (kind || ""); }
+
+// ---------------- sample data (shown until real data is available)
+function sample(){
+  var acc = [], f = 140, start = Date.parse("2026-11-16T23:00:00+05:30");
+  for (var i = 0; i < 75; i++){ f += Math.round(6 + i * 0.35 + 9 * Math.sin(i / 3) + (i === 52 ? 140 : 0)); acc.push({time:new Date(start + i * 864e5).toISOString(), followers:f}); }
+  var heads = ["Where the Godavari is born","Why Nashik hosts the Kumbh","Ramkund: Lord Rama's ghat","Amrit Snan dates to save","What to pack for Kumbh","Myth vs fact: the holy dip","Kalaram Mandir's black idol","Trimbakeshwar in 60 seconds","Best days for families","Goda Aarti at dusk","Naga sadhus explained","Anjaneri, Hanuman's hill"];
+  var posts = heads.map(function(h, i){
+    var reach = 400 + ((i * 397) % 2600), likes = Math.round(reach * 0.07), saved = Math.round(reach * (0.01 + (i % 4) * 0.012)), shares = Math.round(reach * 0.008 * (1 + i % 3)), comments = 3 + i % 9;
+    return {published_at:new Date(start + (60 + i) * 864e5 / 1).toISOString(), kind: i % 3 === 1 ? "reel" : "image", headline:h, reach:reach * (i % 3 === 1 ? 3 : 1), likes:likes, saved:saved, shares:shares, comments:comments, score:likes + 3 * comments + 4 * saved + 5 * shares};
+  });
+  return {demo:true, updated:"sample", handle:"@thenashikguide", brand:"The Nashik Guide", countdown:{days_left:null}, account:acc, posts:posts,
+    queue:[{slot:1,kind:"image",time:"09:00",status:"published",topic:"Trimbakeshwar",headline:"Where the Godavari is born"},
+           {slot:2,kind:"reel",time:"13:00",status:"scheduled",topic:"Rituals",headline:"Amrit Snan explained in 15 seconds"},
+           {slot:3,kind:"image",time:"19:00",status:"scheduled",topic:"Pilgrim guide",headline:"5 things to pack for Kumbh"}]};
+}
+
+// ---------------- data loading
+var DATA = null, sortKey = "score", sortDir = -1;
+function load(){
+  fetch("../data/dashboard.json?ts=" + Date.now()).then(function(r){ if (!r.ok) throw 0; return r.json(); })
+    .then(function(d){ DATA = d; render(); })
+    .catch(function(){ DATA = sample(); $("demo-banner").hidden = false; render(); });
+}
+
+function daysLeft(){
+  var t = Date.parse("2027-08-02T00:00:00+05:30");
+  return Math.max(0, Math.ceil((t - Date.now()) / 864e5));
+}
+
+function render(){
+  var d = DATA;
+  $("brand").textContent = d.brand || "The Nashik Guide";
+  $("updated").textContent = d.demo ? "Sample data" : "Data updated " + new Date(d.updated).toLocaleString("en-IN", {dateStyle:"medium", timeStyle:"short"});
+  var acc = d.account || [];
+  var last = acc.length ? acc[acc.length - 1].followers : null;
+  $("t-followers").textContent = fmt(last);
+  if (acc.length > 1){
+    var weekAgo = acc[Math.max(0, acc.length - 8)].followers, diff = last - weekAgo;
+    $("t-week").textContent = (diff >= 0 ? "+" : "") + fmt(diff);
+    $("t-week").className = "v " + (diff >= 0 ? "up" : "down");
+    var need = Math.max(0, 10000 - last), days = Math.max(1, Math.ceil((Date.parse("2027-11-15") - Date.now()) / 864e5));
+    $("t-followers-d").textContent = need ? fmt(need) + " to go for 10k" : "10k reached";
+    $("t-week-d").textContent = "need about " + fmt(Math.ceil(need / days * 7)) + " a week for 10k";
+  }
+  var ps = (d.posts || []).slice();
+  var recent = ps.slice(-10);
+  var avg = recent.length ? Math.round(recent.reduce(function(a, p){ return a + (p.reach || 0); }, 0) / recent.length) : null;
+  $("t-reach").textContent = fmt(avg);
+  var reels = recent.filter(function(p){ return p.kind === "reel"; }), imgs = recent.filter(function(p){ return p.kind !== "reel"; });
+  function av(a){ return a.length ? Math.round(a.reduce(function(s, p){ return s + (p.reach || 0); }, 0) / a.length) : 0; }
+  if (reels.length && imgs.length) $("t-reach-d").textContent = "Reels " + fmt(av(reels)) + " · images " + fmt(av(imgs));
+  $("t-posts").textContent = fmt(ps.length);
+  $("t-posts-d").textContent = (d.daily_plan || ["image","reel","image"]).length + " a day";
+  $("t-days").textContent = fmt(daysLeft());
+  drawChart(acc);
+  renderQueue(d.queue || []);
+  renderPosts();
+}
+
+// ---------------- chart
+function drawChart(acc){
+  var svg = $("chart"), W = 720, H = 260, L = 56, R = 16, T = 16, B = 30;
+  if (acc.length < 2){ svg.innerHTML = '<text x="20" y="40" fill="var(--muted)" font-size="14">Growth appears after a few days of stats.</text>'; return; }
+  var xs = acc.map(function(a){ return Date.parse(a.time); }), ys = acc.map(function(a){ return a.followers; });
+  var x0 = xs[0], x1 = xs[xs.length - 1], ymax = Math.max.apply(null, ys);
+  var step = Math.pow(10, Math.floor(Math.log10(ymax || 1))); var nice = Math.ceil(ymax / step) * step; if (nice / step < 3) { step /= 2; nice = Math.ceil(ymax / step) * step; }
+  function X(t){ return L + (t - x0) / Math.max(1, x1 - x0) * (W - L - R); }
+  function Y(v){ return T + (1 - v / nice) * (H - T - B); }
+  var g = "", v;
+  for (v = 0; v <= nice + 1e-9; v += step){ g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="var(--line)"/><text x="' + (L - 8) + '" y="' + (Y(v) + 4) + '" text-anchor="end" font-size="12" fill="var(--muted)">' + fmt(v) + '</text>'; }
+  var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"], seen = {};
+  xs.forEach(function(t){ var dd = new Date(t), key = dd.getFullYear() + "-" + dd.getMonth(); if (!seen[key] && dd.getDate() <= 7){ seen[key] = 1; g += '<text x="' + X(t) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="12" fill="var(--muted)">' + months[dd.getMonth()] + '</text>'; } });
+  var path = xs.map(function(t, i){ return (i ? "L" : "M") + X(t).toFixed(1) + " " + Y(ys[i]).toFixed(1); }).join("");
+  var area = path + "L" + X(x1) + " " + Y(0) + "L" + X(x0) + " " + Y(0) + "Z";
+  var ex = X(x1), ey = Y(ys[ys.length - 1]);
+  svg.innerHTML = g + '<path d="' + area + '" fill="var(--saffron)" fill-opacity="0.12"/><path d="' + path + '" fill="none" stroke="var(--saffron)" stroke-width="2.5" stroke-linejoin="round"/>' +
+    '<circle cx="' + ex + '" cy="' + ey + '" r="5" fill="var(--saffron)"/><text x="' + (ex - 8) + '" y="' + (ey - 12) + '" text-anchor="end" font-size="13" font-weight="700" fill="var(--ink)">' + fmt(ys[ys.length - 1]) + '</text>';
+  $("goal-line").textContent = "Goal: 10,000 followers by November 2027.";
+}
+
+// ---------------- queue
+function mediaUrl(rel){ return repo ? "https://raw.githubusercontent.com/" + repo + "/media/" + rel : ""; }
+function renderQueue(q){
+  var box = $("queue");
+  if (!q.length){ box.innerHTML = '<p class="hint">Nothing scheduled yet. Posts are made at 09:00 IST, or press "Post next now".</p>'; return; }
+  box.innerHTML = q.map(function(p){
+    var img = p.thumb && !DATA.demo ? '<img src="../' + esc(p.thumb) + '" alt="">' : esc(p.kind === "reel" ? "Reel" : "Image");
+    var canSkip = p.status === "scheduled" || p.status === "error";
+    var view = p.media && !DATA.demo ? '<a href="' + esc(mediaUrl(p.media)) + '">Open full size</a>' : "";
+    return '<article class="q"><div class="img"><span class="badge">' + (p.kind === "reel" ? "Reel" : "Image") + '</span>' + img + '</div>' +
+      '<div class="body"><div class="meta"><span>' + esc(p.time || "") + ' IST · post ' + p.slot + '</span><span class="pill ' + esc(p.status) + '">' + esc(p.status) + '</span></div>' +
+      '<h3>' + esc(p.headline) + '</h3>' + (p.error ? '<div class="err">' + esc(p.error) + '</div>' : "") +
+      '<div class="acts">' + (canSkip ? '<button type="button" data-skip="' + p.slot + '">Skip</button>' : "") + view + '</div></div></article>';
+  }).join("");
+  box.querySelectorAll("[data-skip]").forEach(function(b){
+    b.addEventListener("click", function(){ dispatch("skip", b.getAttribute("data-skip"), "Skipping post " + b.getAttribute("data-skip")); });
+  });
+}
+
+// ---------------- posts table
+function renderPosts(){
+  var rows = (DATA.posts || []).slice().sort(function(a, b){
+    var x = a[sortKey], y = b[sortKey];
+    if (typeof x === "string" || typeof y === "string") return String(x || "").localeCompare(String(y || "")) * sortDir;
+    return ((x || 0) - (y || 0)) * sortDir;
+  });
+  var max = Math.max.apply(null, rows.map(function(r){ return r.score || 0; }).concat([1]));
+  $("posts").querySelector("tbody").innerHTML = rows.length ? rows.slice(0, 60).map(function(r){
+    var dt = r.published_at ? new Date(r.published_at).toLocaleDateString("en-IN", {day:"numeric", month:"short"}) : "–";
+    return "<tr><td>" + dt + '</td><td><span class="kind">' + (r.kind === "reel" ? "REEL" : "IMAGE") + '</span></td><td class="h">' + esc(r.headline) +
+      '</td><td class="n">' + fmt(r.reach) + '</td><td class="n">' + fmt(r.likes) + '</td><td class="n">' + fmt(r.saved) + '</td><td class="n">' + fmt(r.shares) +
+      '</td><td class="n">' + fmt(r.score) + '<span class="bar" style="width:' + Math.round(40 * (r.score || 0) / max) + 'px"></span></td></tr>';
+  }).join("") : '<tr><td colspan="8">Stats appear after the first night\'s update.</td></tr>';
+  $("posts").querySelectorAll("th").forEach(function(th){
+    if (th.getAttribute("data-k") === sortKey) th.setAttribute("aria-sort", sortDir < 0 ? "descending" : "ascending"); else th.removeAttribute("aria-sort");
+  });
+}
+$("posts").querySelectorAll("th").forEach(function(th){
+  th.addEventListener("click", function(){ var k = th.getAttribute("data-k"); if (k === sortKey) sortDir *= -1; else { sortKey = k; sortDir = -1; } renderPosts(); });
+});
+
+// ---------------- GitHub API
+function gh(path, opts){
+  opts = opts || {};
+  var h = {"Accept":"application/vnd.github+json"};
+  if (token) h.Authorization = "Bearer " + token;
+  if (opts.body) h["Content-Type"] = "application/json";
+  return fetch("https://api.github.com/repos/" + repo + path, {method:opts.method || "GET", headers:h, body:opts.body ? JSON.stringify(opts.body) : undefined});
+}
+var branch = "main";
+function loadGitHub(){
+  if (!repo) { $("bot-status").textContent = "Not connected"; return; }
+  gh("").then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ if (j && j.default_branch) branch = j.default_branch; }).catch(function(){});
+  gh("/actions/workflows/" + WF).then(function(r){ if (!r.ok) throw r.status; return r.json(); }).then(function(w){
+    var on = w.state === "active";
+    $("bot-status").textContent = on ? "Bot active" : "Bot paused";
+    $("bot-status").className = "status " + (on ? "on" : "off");
+    $("b-pause").innerHTML = on ? 'Pause bot <small>stops all scheduled posting</small>' : 'Resume bot <small>starts scheduled posting again</small>';
+    $("b-pause").dataset.state = on ? "on" : "off";
+  }).catch(function(){ $("bot-status").textContent = "Status unavailable"; });
+  gh("/actions/workflows/" + WF + "/runs?per_page=8").then(function(r){ if (!r.ok) throw 0; return r.json(); }).then(function(j){
+    var names = {schedule:"Scheduled", workflow_dispatch:"Manual"};
+    $("runs").innerHTML = (j.workflow_runs || []).map(function(run){
+      var st = run.status === "completed" ? run.conclusion : run.status;
+      return '<li><span class="dot ' + esc(st) + '"></span><a href="' + esc(run.html_url) + '">' + esc(names[run.event] || run.event) + " run</a> <span>" + esc(st) + '</span><time>' +
+        new Date(run.created_at).toLocaleString("en-IN", {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"}) + "</time></li>";
+    }).join("") || "<li>No runs yet.</li>";
+  }).catch(function(){ $("runs").innerHTML = "<li>Could not load runs. Check the repository name in Settings.</li>"; });
+}
+
+function needToken(){
+  if (!repo || !token){ say("Add your repository and access token in Settings to use the buttons.", "err"); $("settings").open = true; return true; }
+  return false;
+}
+function dispatch(task, slot, label){
+  if (needToken()) return;
+  say(label + "…");
+  gh("/actions/workflows/" + WF + "/dispatches", {method:"POST", body:{ref:branch, inputs:{task:task, slot:String(slot || 0)}}})
+    .then(function(r){
+      if (r.status === 204){ say(label + " started. It takes 1–5 minutes; this page refreshes the run list.", "ok"); setTimeout(loadGitHub, 4000); setTimeout(function(){ loadGitHub(); load(); }, 90000); }
+      else if (r.status === 401 || r.status === 403) say("GitHub refused the token. Check that it has Actions: Read and write on this repository.", "err");
+      else say("GitHub answered " + r.status + ". Check the repository name in Settings.", "err");
+    }).catch(function(){ say("Could not reach GitHub. Check your internet connection.", "err"); });
+}
+function armed(btn, run){
+  if (btn.classList.contains("confirm")){ btn.classList.remove("confirm"); run(); return; }
+  var old = btn.innerHTML; btn.classList.add("confirm"); btn.innerHTML = "Click again to confirm";
+  setTimeout(function(){ if (btn.classList.contains("confirm")){ btn.classList.remove("confirm"); btn.innerHTML = old; } }, 4000);
+}
+$("b-post").addEventListener("click", function(){ dispatch("post", 0, "Posting the next post"); });
+$("b-monitor").addEventListener("click", function(){ dispatch("monitor", 0, "Updating stats"); });
+$("b-regen").addEventListener("click", function(){ var b = this; armed(b, function(){ b.innerHTML = "Remake today's posts <small>new text and art for unposted ones</small>"; dispatch("regenerate", 0, "Remaking today's posts"); }); });
+$("b-pause").addEventListener("click", function(){
+  var b = this; if (needToken()) return;
+  var on = b.dataset.state !== "off";
+  armed(b, function(){
+    say(on ? "Pausing…" : "Resuming…");
+    gh("/actions/workflows/" + WF + (on ? "/disable" : "/enable"), {method:"PUT"}).then(function(r){
+      if (r.status === 204){ say(on ? "Bot paused. Nothing will post until you resume." : "Bot resumed.", "ok"); loadGitHub(); }
+      else say("GitHub answered " + r.status + ". The token needs Actions: Read and write.", "err");
+    }).catch(function(){ say("Could not reach GitHub.", "err"); });
+  });
+});
+$("s-save").addEventListener("click", function(){
+  repo = $("s-repo").value.trim().replace(/^https:\/\/github\.com\//, "").replace(/\/$/, "");
+  token = $("s-token").value.trim();
+  store.set("ap-repo", repo); store.set("ap-token", token);
+  say("Settings saved in this browser.", "ok"); loadGitHub();
+});
+
+load(); loadGitHub();
+setInterval(function(){ $("t-days").textContent = fmt(daysLeft()); }, 60000);
+})();
+</script>
+</body>
+</html>
