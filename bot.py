@@ -10,7 +10,9 @@ Commands:
   python bot.py dashboard           rebuild data/dashboard.json (done automatically too)
 
 Environment variables (GitHub Secrets):
-  ANTHROPIC_API_KEY   writes the content
+  CLAUDE_CODE_OAUTH_TOKEN  writes the content using your Claude Pro/Max plan
+                           (create it with `claude setup-token`)
+  ANTHROPIC_API_KEY   alternative: a Claude Console API key (pay-as-you-go)
   OPENAI_API_KEY      creates the original artwork (optional; fallback art without it)
   IG_USER_ID          Instagram professional account ID
   IG_ACCESS_TOKEN     long-lived token with publish + insights permissions
@@ -129,6 +131,20 @@ def performance_summary():
 
 # ================================================================ writing (Claude)
 def ask_claude(prompt, max_tokens=8000):
+    """Uses your Claude Pro/Max plan through Claude Code (CLAUDE_CODE_OAUTH_TOKEN),
+    or a Console API key (ANTHROPIC_API_KEY) if you have one."""
+    if os.getenv("CLAUDE_CODE_OAUTH_TOKEN") and not os.getenv("ANTHROPIC_API_KEY"):
+        env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
+        cmd = ["claude", "-p", "--output-format", "json", "--max-turns", "1"]
+        if CFG.get("model"):
+            cmd += ["--model", str(CFG["model"])]
+        r = subprocess.run(cmd, input=prompt, capture_output=True, text=True, env=env, timeout=600)
+        if r.returncode != 0:
+            raise RuntimeError(f"Claude Code failed: {r.stderr[-800:] or r.stdout[-800:]}")
+        out = json.loads(r.stdout)
+        if out.get("is_error"):
+            raise RuntimeError(f"Claude Code error: {str(out.get('result'))[:800]}")
+        return out.get("result", "")
     import anthropic
     msg = anthropic.Anthropic().messages.create(
         model=CFG.get("model", "claude-sonnet-5-5"),
@@ -531,7 +547,8 @@ def cmd_generate(force=False):
         log(f"Posts for {today()} already exist - nothing to do.")
         return
     kinds = [k for _, k in todo]
-    items = sample_content(kinds) if (DRY and not os.getenv("ANTHROPIC_API_KEY")) else write_content(kinds)
+    has_ai = os.getenv("ANTHROPIC_API_KEY") or os.getenv("CLAUDE_CODE_OAUTH_TOKEN")
+    items = sample_content(kinds) if (DRY and not has_ai) else write_content(kinds)
     for (slot, kind), post in zip(todo, items):
         build_post(post, slot, kind)
 

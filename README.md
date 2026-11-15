@@ -39,7 +39,8 @@ Switch the account to **Creator** or **Business** and link a **Facebook Page**.
 ### 2. Keys you need
 | Secret name | Where to get it | Cost |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | console.anthropic.com → API keys | small, per post |
+| `CLAUDE_CODE_OAUTH_TOKEN` | Uses your **Claude Pro** plan. On your laptop: install Claude Code (`npm install -g @anthropic-ai/claude-code`), run `claude setup-token`, log in, copy the token it prints | included in Pro (counts toward your Pro usage limits) |
+| *or* `ANTHROPIC_API_KEY` | only if you'd rather pay per use: console.anthropic.com → API keys | pay-as-you-go |
 | `OPENAI_API_KEY` | platform.openai.com → API keys (for the artwork) | per image; ~6 images/day |
 | `IG_USER_ID` + `IG_ACCESS_TOKEN` | developers.facebook.com → create a Business app → add Instagram → API setup with Instagram login → generate token with `instagram_business_basic`, `instagram_business_content_publish`, `instagram_business_manage_insights` | free |
 
